@@ -13,7 +13,7 @@ import colorsys
 from typing import List, Tuple, Union, Optional
 
 
-MAKE = 'changes'
+MAKE = 'caged arps'
 
 
 
@@ -191,7 +191,7 @@ def add_label_grid_onto_image(
         *,
         rows: int,
         cols: int,  # original columns (not counting extra-left column)
-        box_size: Tuple[int, int] = (70, 55),  # 55 px height as requested
+        box_size: Tuple[int, int] = (70, 65),  # 55 px height as requested
         box_radius: int = 8,
         grid_origin: Tuple[int, int] = (337, 59),  # center of original col 0, row 0
         origin_step: Tuple[int, int] = (102, 72),  # center-to-center spacing (x, y)
@@ -220,15 +220,18 @@ def add_label_grid_onto_image(
             font = ImageFont.truetype(font_path, 32 * S) if font_path else ImageFont.load_default()
         except OSError:
             print(f"Could not load font at {font_path}, using default font.")
-        draw.text((600, 2000), labels[0]['name'][0], font=font, fill='#6AA8D8')
-        draw.text((400, 2100), 'to', font=font, fill=default_text_color)
-        draw.text((600, 2200), labels[0]['name'][1], font=font, fill='#e58c19')
+        if len(labels[0]['name']) == 2:
+            draw.text((600, 2000), labels[0]['name'][0], font=font, fill='#6AA8D8')
+            draw.text((400, 2100), 'to', font=font, fill=default_text_color)
+            draw.text((600, 2200), labels[0]['name'][1], font=font, fill='#e58c19')
+        else:
+            draw.text((600, 2000), labels[0]['name'], font=font, fill='#6AA8D8')
 
     # Scaled defaults
     def_box_w, def_box_h = box_size[0] * S, box_size[1] * S
     origin_x, origin_y = grid_origin[0] * S, grid_origin[1] * S
     step_x, step_y = origin_step[0] * S, origin_step[1] * S
-    def_rad = (box_radius + (1 if plus_one_corner_rounding else 0)) * S
+    def_rad = (box_radius + (3 if plus_one_corner_rounding else 0)) * S
     grid_left_shift = box_left_offset_px * S
 
     d_text = _parse_color(default_text_color, (0, 0, 0))
@@ -304,14 +307,12 @@ def add_label_grid_onto_image(
 
     # B) rc-indexed labels (row/col)
     for lab in rc_items:
-        # print(lab)
         r, vcol = int(lab["rc"][0]), int(lab["rc"][1])
         if not (0 <= r < rows and 0 <= vcol < total_cols):
             continue
         cx, cy = col_center_x(vcol), origin_y + r * step_y
 
         if lab.get("button", False):
-            # print(lab['fill'])
             if isinstance(lab["fill"], tuple) and len(lab["fill"]) == 2:
                 adj1 = _adjust_hsl(lab["fill"][0], lab.get("sat_mult", 1.0), lab.get("light_add", 0.0),
                                    lab.get("light_mult", 1.0))
@@ -325,6 +326,7 @@ def add_label_grid_onto_image(
             bx_w = lab.get("box_w") or def_box_w
             bx_h = lab.get("box_h") or def_box_h
             rad = lab.get("box_radius") or def_rad
+            rad = 100
             lshift = grid_left_shift if lab.get("left_shift_px", None) is None else int(round(lab["left_shift_px"] * S))
             x0 = cx - bx_w // 2 - lshift
             y0 = cy - bx_h // 2
@@ -1149,7 +1151,7 @@ seventh_7 = """5,1,R,1
 
 
 def make(i, mod):
-    print(i)
+
     mapping = {
         'b3': (3, -1),
         'b7': (7, -1),
@@ -1177,7 +1179,7 @@ def make(i, mod):
                     r, f, note, col = n.split(',')
                     r = int(r)
                     f = int(f)
-                    col = int(col)
+                    # col = col
 
                     strnote = str(note)
                 else:
@@ -1185,7 +1187,7 @@ def make(i, mod):
                     f = int(n[1])
                     note = int(n[2])
                     strnote = str(note)
-                    col = int(n[3])
+                    col = n[3]
 
                 if row == r and fret == f:
                     Y = row - 1
@@ -1193,20 +1195,24 @@ def make(i, mod):
                     border = 3
                     light = 0
                     sat = 1
-                    color = note_colors[int(col)]
+                    try:
+                        color = note_colors[int(col)]
+                    except:
+                        color = col
 
                     for k, map in mapping.items():
                         for m in mod:
                             if m == k and note == map[0]:
                                 strnote = k
                                 X = X + map[1]
+
                     pos = (Y, X)
                     blend = None
                     outline = '#000000'
                     text_color = '#000000'
 
                     label = {"rc": pos, "text": strnote, "fill": color, 'button': True, 'sat': sat, 'light': light,
-                             "border_width": border, 'blend': blend, 'outline': outline, 'text_color': text_color}
+                             "border_width": border, 'blend': blend, 'outline': outline, 'text_color': text_color, 'name': mod}
                     labels.append(label)
 
     return labels
@@ -1225,9 +1231,7 @@ def ORM(triad):
     t2 = [read_row(t) for t in triad[3:6]]
     t3 = [read_row(t) for t in triad[6:9]]
 
-    print('1:', t1)
-    print('2:', t2)
-    print('3:', t3)
+
     # if root triad
     if 'R' in t1[2]['note']:
         t_root = t1
@@ -1250,9 +1254,7 @@ def ORM(triad):
     elif '5' in t3[2]['note']:
         t_second = t3
 
-    print('ROOT', t_root)
-    print('FIRST', t_first)
-    print('SECOND', t_second)
+
 
     root_offset = 3 - t_root[2]['f']
 
@@ -1270,7 +1272,7 @@ def ORM(triad):
 
     for t in t_second:
         t['f'] = t['f'] + second_offset
-        print(t['f'])
+
         t['col'] = '3'
 
     labels = []
@@ -1460,13 +1462,20 @@ def chord_notes(note, type, extensions, name):
         'm7': [1, 4, 8, 11],
         'M7': [1, 5, 8, 11],
         '7': [1, 5, 8, 11],
+        '6': [1, 5, 8, 10],
+        'm6': [1, 4, 8, 10],
         'maj7': [1, 5, 8, 12],
         'm7b5': [1, 4, 7, 11],
+        'PD': [1, 2, 5, 6, 8, 9, 11],
+        'ALT': [1, 2, 4, 5, 7, 9, 10],
+        'LD': [1, 3, 5, 7, 8, 9, 10],
+        'MIX': [1, 3, 5, 6, 8, 10, 11],
     }
 
     extensions_mapping = {
         '#5': 9,
         'b5': 7,
+        'b9': 2,
         '9': 3,
         '11': 6,
         'b13': 9,
@@ -1482,11 +1491,7 @@ def chord_notes(note, type, extensions, name):
     for e in extensions:
         chord.append( (extensions_mapping[e] + note_offset) % 12)
 
-    # for c in chord:
-    #     print(tone[(c-note_offset)%12-1])
-    # print(chord)
-    # import sys
-    # sys.exit()
+
     return note_offset, chord, name
 
 def print_chord(chord):
@@ -1494,11 +1499,7 @@ def print_chord(chord):
         print(tone[(c-chord[0])%12-1], chord[0], c)
 
 def mark_chord_change(current_chord, next_chord):
-    # print('>>>')
-    # print_chord(current_chord)
-    # print('---')
-    # print_chord(next_chord)
-    # print('<<<')
+
 
     current = current_chord[1]
     current_offset = current_chord[0]
@@ -1646,6 +1647,148 @@ def mark_chord_change(current_chord, next_chord):
 
     return labels
 
+def get_fret(notes, note):
+
+    try:
+        pos = notes.index(note)
+    except ValueError:
+        pos = None
+    return pos
+
+def build_two_four_scale(note, string, string_steps, scale_steps, text_type, label):
+
+    # notes mapping
+    nm = {
+        '1': 1,
+        'b2': 2,
+        'b9': 2,
+        '2': 3,
+        '9': 3,
+        'b3': 4,
+        '#9': 4,
+        '3': 5,
+        '11': 6,
+        '4': 6,
+        '#4': 7,
+        '#11': 7,
+        'b5': 7,
+        '5': 8,
+        'b6': 9,
+        'b13': 9,
+        '6': 10,
+        '13': 10,
+        'b7': 11,
+        '7': 12,
+    }
+
+    color = {
+        '1': 1,
+        'b2': 2,
+        'b9': 2,
+        '2': 3,
+        '9': 3,
+        'b3': 4,
+        '#9': 4,
+        '3': 5,
+        '11': 6,
+        '4': 6,
+        '#4': 7,
+        '#11': 7,
+        'b5': 7,
+        '5': 8,
+        'b6': 9,
+        'b13': 9,
+        '6': 10,
+        '13': 10,
+        'b7': 11,
+        '7': 12,
+    }
+
+    colour_map = {
+        1: "#3fc645",  # Root, deep green, stable and grounding
+        2: "#5F9EA0",  # b2 / b9, muted slate blue, tense and cool
+        3: "#199ca0",  # 2 / 9, soft desaturated teal, open but light
+        4: "#887915",  # b3, muted brick red, minor colour without glare
+        5: "#c7b51d",  # 3, warm ochre, clear and harmonically strong
+        6: "#676f7f",  # 4 / 11, dark olive, suspended and unresolved
+        7: "#ba0000",  # b5 / #11, steel blue, altered but readable
+        8: "#916a6a",  # 5, neutral grey, structural and calm
+        9: "#703b1c",  # b6 / b13, dark teal, colour without brightness
+        10: "#946325",  # 6 / 13, muted bronze, extended but consonant
+        11: "#83378a",  # b7, dark neutral grey, dominant tension
+        12: "#7654b3"  # 7, deep violet, leading tone with gravity
+    }
+
+
+    name_colour = []
+
+
+    new_steps = []
+    prev = nm[scale_steps[0]]
+    name_colour.append( (colour_map[nm[scale_steps[0]]],scale_steps[0]) )
+    offset = 0
+
+
+
+    for step in scale_steps[1:]:
+
+
+        if (nm[step]+offset) - prev < 0:
+            offset += 12
+
+        new_steps.append((nm[step]+offset) - prev)
+        prev = nm[step]+offset
+        name_colour.append((colour_map[nm[step]], step))
+    scale_steps = new_steps
+
+    markers = []
+
+    fretboard = {}
+
+    fretboard[6] = ['E','F','F#','G','G#','A','A#','B','C','C#','D','D#', 'E','F','F#','G']
+    fretboard[5] = ['A','A#','B','C','C#','D','D#','E','F','F#','G','G#', 'A','A#','B','C']
+    fretboard[4] = ['D','D#','E','F','F#','G','G#','A','A#','B','C','C#', 'D','D#','E','F']
+    fretboard[3] = ['G','G#','A','A#','B','C','C#','D','D#','E','F','F#', 'G','G#','A','A#']
+    fretboard[2] = ['B','C','C#','D','D#','E','F','F#','G','G#','A','A#', 'B','C','C#','D']
+    fretboard[1] = ['E','F','F#','G','G#','A','A#','B','C','C#','D','D#', 'E','F','F#','G']
+
+
+    if note in fretboard[1]:
+        current = get_fret(fretboard[string], note)
+    else:
+        if '2' in note:
+            current = get_fret(fretboard[string], note[:-1]) + 12
+
+    markers.append('%s,%s,%s,%s'%(string, current, name_colour[0][1], name_colour[0][0]) )
+
+
+
+
+    sN = 0
+    N = 0
+
+    for count, step in enumerate(scale_steps):
+        N += 1
+        if N == string_steps[sN]:
+            N = 0
+            sN += 1
+            if sN == 6:
+                break
+
+            new_current = get_fret(fretboard[string - sN], fretboard[string - sN + 1][current]) + step
+            if new_current > current + 4:
+                new_current = new_current - 12
+            current = new_current
+
+        else:
+            current = current+step
+
+        markers.append('%s,%s,%s,%s' % (string - sN, current, name_colour[count+1][1], name_colour[count+1][0] ) )
+
+
+    labels = make(markers,label)
+
+    return labels
 
 
 
@@ -1689,10 +1832,7 @@ if __name__ == "__main__":
     if MAKE == 'caged':
         mod = []
         label_set = []
-        # a = make_mode(1, root=False, degree=True)
-        # b = make_mode(4, root=True, degree=True)
-        # labels = a + b
-        # label_set.append(labels)
+
 
         e = make_caged(E, mode=1, start=1)
         c = make_caged(C, mode=3, start=1)
@@ -1840,7 +1980,7 @@ if __name__ == "__main__":
 
     # Take ordered chords and make changes showing common and unshared notes
     if MAKE == 'changes':
-        mod = []
+        mod = ['allofme']
 
         ## The basic form of creating a change is to build the label_set list as follows
         ## But I've created a changes list which then builds each transition as you'll see further down.
@@ -1851,13 +1991,14 @@ if __name__ == "__main__":
 
         ## First test without extensions
         ## Format ('note', 'type', [extensions], 'display name')
-        ## Types are up on line 1063 at the moment and you can pick from below. Feel free to add more you just need
+        ## Types are up on line 1461 at the moment and you can pick from below. Feel free to add more you just need
         ## the chromatic note set.
         # 'm': [1, 4, 8],
         # 'M': [1, 5, 8],
         # 'm7': [1, 4, 8, 11],
         # 'M7': [1, 5, 8, 11],
         # '7': [1, 5, 8, 11],
+        # '6': [1, 5, 8, 10],
         # 'maj7': [1, 5, 8, 12],
         # 'm7b5': [1, 4, 7, 11],
 
@@ -1873,31 +2014,168 @@ if __name__ == "__main__":
         # changes = [ Cm7, Fm7, Dm7b5, G7, Cm7, Ebm7, Ab7, Dbmaj7 ]
 
 
-        # This builds the note set based on chromatic numbering
-        Cm7 = chord_notes('C', 'm7', ['9'], 'Cm9')
-        Fm7 = chord_notes('F', 'm7', ['9'], 'Fm9')
-        Dm7b5 = chord_notes('D', 'm7b5', [], 'Dm7b5')
-        G7 = chord_notes('G', '7', ['b13'], 'G7(b13)')
+        # # This builds the note set based on chromatic numbering
+        # Cm9 = chord_notes('C', 'm7', ['9'], 'Cm9')
+        # Fm9 = chord_notes('F', 'm7', ['9'], 'Fm9')
+        # Dm7b5 = chord_notes('D', 'm7b5', [], 'Dm7b5')
+        # Gb13 = chord_notes('G', '7', ['b13'], 'G7(b13)')
 
-        Ebm7 = chord_notes('Eb', 'm7', ['9'], 'Ebm9')
-        Ab7 = chord_notes('Ab', '7', ['13'], 'Ab13')
-        Dbmaj7 = chord_notes('Db', 'maj7', [], 'Dbmaj7')
+        # Ebm9 = chord_notes('Eb', 'm7', ['9'], 'Ebm9')
+        # Ab13 = chord_notes('Ab', '7', ['13'], 'Ab13')
+        # Dbmaj7 = chord_notes('Db', 'maj7', [], 'Dbmaj7')
 
-        # The system works on changes
-        changes = [ Cm7, Fm7, Dm7b5, G7, Cm7, Ebm7, Ab7, Dbmaj7, Dm7b5 ]
 
+        # All of Me
+        C69 = chord_notes('C', '6', ['9'], 'C6/9')
+        E9 = chord_notes('E', '7', ['9'], 'E9')
+        A7 = chord_notes('A', '7', [], 'A7')
+        Dm6 = chord_notes('D', 'm6', [], 'Dm6')
+        Am6 = chord_notes('A', 'm6', [], 'Am6')
+        D9 = chord_notes('D', '7', ['9'], 'D9')
+        G7 = chord_notes('G', '7', [], 'G7')
+        F69 = chord_notes('F', '6', ['9'], 'F6/9')
+        Fm6 = chord_notes('F', 'm6', [], 'Fm6')
+        Dm7 = chord_notes('D', 'm7', [], 'Dm7')
+
+
+
+
+
+
+        # Blue Bossa
+        #changes = [ Cm7, Fm7, Dm7b5, G7, Cm7, Ebm7, Ab7, Dbmaj7, Dm7b5 ]
+        #changes = [ Cm9, Fm9, Dm7b5, Gb13, Cm9, Ebm9, Ab13, Dbmaj7, Dm7b5 ]
+
+        # All of Me
+        # changes = [C69, E9, A7, Dm6]
+
+
+
+        # This next block is comparing different Harmonic/Melodic Modes vs the ALT scale
         label_set = []
 
         for n, c in enumerate(changes):
             if n < len(changes)-1:
                 label_set.append( mark_chord_change(changes[n], changes[n+1]) )
 
+        E7b9b13 = chord_notes('E', '7', ['b9','b13'], 'E7b9b13')
+
+        EPD = chord_notes('E', 'PD', [], 'E Phrygian Dominant - 7th mode of Melodic Minor')
+        EALT = chord_notes('E', 'ALT', [], 'E Alt (Super Locrian) - 5th mode of Harmonic Minor')
+        ELD = chord_notes('E', 'LD', [], 'E Lydian Dominant - 4th mode of Melodic Minor')
+        EMIX = chord_notes('E', 'MIX', [], 'E Mixolydian - 5th mode of Major Scale')
 
 
 
+        # I made a bunch of EALT vs EPD, EALT bs ELD etc
+        label_set.append( mark_chord_change(EPD, EALT))
+        # I wanted to see how the b9b13 lined up against ALT ish scales
+        label_set.append( mark_chord_change(E7b9b13, EALT))
+        label_set.append( mark_chord_change(E7b9b13, EPD))
+        label_set.append( mark_chord_change(E7b9b13, ELD))
+        label_set.append( mark_chord_change(E7b9b13, EMIX))
 
 
 
+    if MAKE == 'caged arps':
+        mod = 'C Major'
+
+        label_set = []
+
+        ##  Cmaj7 CAGED Arpeggios
+
+        # scale_steps = ['7','1','3','5','7','1','3','5','7','1']
+        # string_steps = [2, 2, 2, 1, 1, 2]
+        # label_set.append( build_two_four_scale('B', 6, string_steps, scale_steps, 'interval', 'C Maj 7 Arpeggio at E shape') )
+        # 
+        # scale_steps = ['3','5','7','1','3','5','7','1','3']
+        # string_steps = [1, 1, 2, 2, 2, 2]
+        # label_set.append( build_two_four_scale('E2', 6, string_steps, scale_steps, 'interval', 'C Maj 7 Arpeggio at D shape') )
+        # 
+        # scale_steps = ['3','5','7','1','3','5','7','1','3','5']
+        # string_steps = [2, 2, 1, 1, 2, 2]
+        # label_set.append( build_two_four_scale('E', 6, string_steps, scale_steps, 'interval', 'C Maj 7 Arpeggio at C shape') )
+        # 
+        # scale_steps = ['5','7','1','3','5','7','1','3','5']
+        # string_steps = [1, 2, 2, 2, 1, 1]
+        # label_set.append( build_two_four_scale('G', 6, string_steps, scale_steps, 'interval', 'C Maj 7 Arpeggio at A shape') )
+        # 
+        # scale_steps = ['7','1','3','5','7','1','3','5','7','1']
+        # string_steps = [2, 1, 1, 2, 2, 2]
+        # label_set.append( build_two_four_scale('B', 6, string_steps, scale_steps, 'interval', 'C Maj 7 Arpeggio at G shape') )
+        # 
+
+
+        ##  C7 CAGED Arpeggios
+
+        # scale_steps = ['3','5','b7','1','3','5','b7','1','3','5']
+        # string_steps = [2, 2, 1, 2, 1, 2]
+        # label_set.append( build_two_four_scale('E', 6, string_steps, scale_steps, 'interval', 'C 7 Arpeggio at C shape') )
+        # 
+        # scale_steps = ['5','b7','1','3','5','b7','1','3','5','b7']
+        # string_steps = [2, 1, 2, 2, 1, 2]
+        # label_set.append( build_two_four_scale('G', 6, string_steps, scale_steps, 'interval', 'C 7 Arpeggio at A shape') )
+        # 
+        # scale_steps = ['b7','1','3','5','b7','1','3','5','b7','1']
+        # string_steps = [2, 1, 2, 1, 2, 2]
+        # label_set.append( build_two_four_scale('B', 6, string_steps, scale_steps, 'interval', 'C 7 Arpeggio at G shape') )
+        # 
+        # scale_steps = ['1','3','5','b7','1','3','5','b7','1','3']
+        # string_steps = [1, 2, 2, 1, 2, 2]
+        # label_set.append( build_two_four_scale('B', 6, string_steps, scale_steps, 'interval', 'C 7 Arpeggio at E shape') )
+        # 
+        # scale_steps = ['3','5','b7','1','3','5','b7','1','3']
+        # string_steps = [1, 2, 2, 1, 2, 1]
+        # label_set.append( build_two_four_scale('E2', 6, string_steps, scale_steps, 'interval', 'C 7 Arpeggio at D shape') )
+        # 
+        # 
+
+
+        ##  Cm7 CAGED Arpeggios
+
+        # scale_steps = ['5','b7','1','b3','5','b7','1','b3','5']
+        # string_steps = [1, 2, 1, 2, 2, 1]
+        # label_set.append( build_two_four_scale('G', 6, string_steps, scale_steps, 'interval', 'C Minor 7 Arpeggio at C shape') )
+        # 
+        # scale_steps = ['5','b7','1','b3','5','b7','1','b3','5','b7',]
+        # string_steps = [2, 2, 1, 2, 1, 2]
+        # label_set.append( build_two_four_scale('G', 6, string_steps, scale_steps, 'interval', 'C Minor 7 Arpeggio at A shape') )
+        # 
+        # scale_steps = ['b7','1','b3','5','b7','1','b3','5','b7','1']
+        # string_steps = [2, 1, 2, 2, 1, 2]
+        # label_set.append( build_two_four_scale('A#', 6, string_steps, scale_steps, 'interval', 'C Minor 7 Arpeggio at G shape') )
+        # 
+        # scale_steps = ['1','b3','5','b7','1','b3','5','b7','1','b3']
+        # string_steps = [2, 1, 2, 1, 2, 2]
+        # label_set.append( build_two_four_scale('C', 6, string_steps, scale_steps, 'interval', 'C Minor 7 Arpeggio at E shape') )
+        # 
+        # scale_steps = ['b3','5','b7','1','b3','5','b7','1','b3']
+        # string_steps = [1, 2, 2, 1, 2, 1]
+        # label_set.append( build_two_four_scale('D#', 6, string_steps, scale_steps, 'interval', 'C Minor 7 Arpeggio at D shape') )
+        # 
+        # 
+
+        ##  Cm7b5 CAGED Arpeggios
+
+        # scale_steps = ['b5','b7','1','b3','b5','b7','1','b3','b5']
+        # string_steps = [1, 2, 2, 1, 2, 1]
+        # label_set.append( build_two_four_scale('F#', 6, string_steps, scale_steps, 'interval', 'C Minor 7 (b5) Arpeggio at C shape') )
+        #
+        # scale_steps = ['b5','b7','1','b3','b5','b7','1','b3','b5','b7',]
+        # string_steps = [2, 2, 1, 2, 2, 1]
+        # label_set.append( build_two_four_scale('F#', 6, string_steps, scale_steps, 'interval', 'C Minor 7 (b5) Arpeggio at A shape') )
+        #
+        # scale_steps = ['b7','1','b3','b5','b7','1','b3','b5','b7','1']
+        # string_steps = [2, 1, 2, 2, 1, 2]
+        # label_set.append( build_two_four_scale('A#', 6, string_steps, scale_steps, 'interval', 'C Minor 7 (b5) Arpeggio at G shape') )
+        #
+        # scale_steps = ['1','b3','b5','b7','1','b3','b5','b7','1','b3']
+        # string_steps = [2, 1, 2, 1, 2, 2]
+        # label_set.append( build_two_four_scale('C', 6, string_steps, scale_steps, 'interval', 'C Minor 7 (b5) Arpeggio at E shape') )
+        #
+        # scale_steps = ['b3','b5','b7','1','b3','b5','b7','1','b3']
+        # string_steps = [2, 1, 2, 2, 1, 1]
+        # label_set.append( build_two_four_scale('D#', 6, string_steps, scale_steps, 'interval', 'C Minor 7 (b5) Arpeggio at D shape') )
 
 
 
@@ -1906,7 +2184,7 @@ if __name__ == "__main__":
 
 
     for n, labels in enumerate(label_set):
-        output = f"fretboard_with_{MAKE}_{n + 1}_{''.join(mod)}.png"
+        output = f"fretnot_{MAKE}_{labels[0]['name']}.png"
 
         add_label_grid_onto_image(
             image_path="fretboard_withmarkers.png",
@@ -1914,8 +2192,8 @@ if __name__ == "__main__":
             labels=labels,
             rows=rows,
             cols=cols,
-            box_size=(70, 55),
-            box_radius=8,
+            box_size=(60, 60),
+            box_radius=100,
             grid_origin=(337, 59),
             origin_step=(102, 72),
             font_path="Arial Bold.ttf",
